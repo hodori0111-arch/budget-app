@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>내 가계부</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#2e7d68">
+<meta name="theme-color" content="#f1ead8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="내 가계부">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <style>
   :root{
-    --green:#2e7d68; --green-d:#225a4c; --bg:#f5f6f4; --card:#ffffff;
-    --red:#e2574c; --blue:#3a7bd5; --text:#222; --muted:#8a8f8c; --line:#e7e9e6;
+    --green:#1c1c1c; --green-d:#000000; --bg:#f1ead8; --card:#ffffff;
+    --red:#ef5a3f; --blue:#4f6fe0; --text:#23201a; --muted:#9a917c; --line:#e7dec9;
+    --shadow:0 8px 20px rgba(120,100,60,.10); --r:18px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
@@ -24,9 +25,10 @@
     padding-bottom:calc(72px + env(safe-area-inset-bottom));
   }
   header{
-    background:var(--green); color:#fff; padding:14px 16px;
+    background:linear-gradient(135deg,#3fc0ef 0%,#1f97cf 100%); color:#fff; padding:14px 16px 18px;
     padding-top:calc(14px + env(safe-area-inset-top));
     position:sticky; top:0; z-index:10;
+    border-radius:0 0 24px 24px; box-shadow:0 6px 18px rgba(41,171,224,.25);
   }
   .h-top{display:flex;align-items:center;justify-content:space-between;}
   .h-title{font-size:18px;font-weight:700;}
@@ -67,7 +69,7 @@
   .cell.today .d{background:var(--green);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
   .cell .d.sun{color:var(--red);}
   .cell .d.sat{color:var(--blue);}
-  .cell .amt{line-height:1.3;word-break:break-all;}
+  .cell .amt{line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;}
   .cell .amt.exp{color:var(--red);}
   .cell .amt.inc{color:var(--blue);}
 
@@ -169,6 +171,50 @@
   .seg-sub{display:flex;gap:6px;margin-bottom:10px;}
   .seg-sub button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px;font-weight:600;font-size:13px;color:var(--muted);}
   .seg-sub button.on{background:var(--green);color:#fff;border-color:var(--green);}
+
+  /* === Ko-fi 느낌: 밝고 둥글둥글, 말랑한 카드 === */
+  .h-title{letter-spacing:-.3px;font-weight:800;}
+  .views{border-radius:999px;}
+  .views button{border-radius:999px;}
+  .sum-box{border-radius:16px;background:rgba(255,255,255,.18);}
+  .cell:not(.empty){border:none;box-shadow:0 2px 8px rgba(41,171,224,.10);border-radius:14px;}
+  .cell.today .d{box-shadow:0 2px 6px rgba(41,171,224,.4);}
+  .row,.tx,.set-card{border:none;box-shadow:var(--shadow);}
+  .row,.tx{border-radius:var(--r);}
+  .set-card{border-radius:22px;}
+  .sheet{border-radius:28px 28px 0 0;}
+  .seg,.seg button{border-radius:999px;}
+  .field input,.field select,.field textarea{border-radius:14px;border-color:var(--line);}
+  .cats button{border-radius:999px;}
+  .chip{border-radius:999px;}
+  .btn-main,.btn-ghost,.btn-del{border-radius:999px;}
+  .btn-main{box-shadow:0 6px 16px rgba(41,171,224,.35);}
+  .fab{box-shadow:0 8px 22px rgba(41,171,224,.45);}
+  .tabbar{box-shadow:0 -2px 14px rgba(41,171,224,.08);border-top:none;}
+  .add-inline button{border-radius:12px;}
+
+  /* === 진짜 Ko-fi 느낌: 크림 배경 + 검정 굵은 글씨/버튼 + 코랄·블루 포인트 === */
+  body{font-weight:500;}
+  header{background:#f1ead8;color:#23201a;box-shadow:none;border-radius:0;border-bottom:1px solid #e7dec9;}
+  .h-title{color:#23201a;font-weight:800;letter-spacing:-.3px;}
+  .nav button{color:#23201a;}
+  .nav .period{color:#23201a;}
+  .views{background:#e7dec9;}
+  .views button{color:#8a806a;}
+  .views button.active{background:#1c1c1c;color:#fff;}
+  .sum-box{background:#fff;border:1px solid #e7dec9;}
+  .sum-box .lab{color:#9a917c;opacity:1;}
+  .sum-box .val{color:#23201a;}
+  .sum-box.inc .val{color:var(--blue);}
+  .sum-box.exp .val{color:var(--red);}
+  .cell:not(.empty){border:1px solid #ece3cf;box-shadow:0 2px 0 #ece3cf;}
+  .cell.today .d{box-shadow:none;}
+  .row,.tx,.set-card{border:1px solid #ece3cf;box-shadow:0 2px 0 #ece3cf;}
+  .btn-main{box-shadow:0 4px 0 #000;}
+  .fab{background:var(--red);box-shadow:0 8px 18px rgba(239,90,63,.4);}
+  .tabbar{background:#fff;border-top:1px solid #e7dec9;box-shadow:none;}
+  .tabbar button.active{color:#1c1c1c;}
+  .seg{background:#efe7d4;}
 </style>
 </head>
 <body>
