@@ -51,6 +51,8 @@
   .sum-box .val{font-size:14px;font-weight:700;margin-top:2px;}
   .sum-box.inc .val{color:#cdeaff;}
   .sum-box.exp .val{color:#ffd5d1;}
+  .sum-box.inc,.sum-box.exp{cursor:pointer;}
+  .sum-box.inc .lab::after,.sum-box.exp .lab::after{content:' ▾';font-size:9px;opacity:.7;}
 
   main{padding:12px;}
 
@@ -157,6 +159,21 @@
   }
   .day-tx-list{margin:6px 0 12px;}
 
+  /* 항목별 합계 */
+  .cat-total{text-align:center;margin:-6px 0 14px;font-weight:800;font-size:20px;}
+  .cat-total.exp{color:var(--red);} .cat-total.inc{color:var(--blue);}
+  .catrow{background:var(--card);border-radius:14px;padding:11px 14px;margin-bottom:8px;border:1px solid #ece3cf;box-shadow:0 2px 0 #ece3cf;}
+  .catrow .top{display:flex;align-items:center;justify-content:space-between;}
+  .donut{width:188px;height:188px;display:block;margin:2px auto 14px;}
+  .catrow .name{font-weight:700;font-size:15px;}
+  .catrow .name .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+  .catrow .name .pct{font-size:11px;color:var(--muted);margin-left:6px;font-weight:600;}
+  .catrow .amt{font-weight:700;font-size:15px;}
+  .catrow.exp .amt{color:var(--red);} .catrow.inc .amt{color:var(--blue);}
+  .catrow .bar{height:6px;border-radius:99px;background:#efe7d4;margin-top:9px;overflow:hidden;}
+  .catrow .bar > i{display:block;height:100%;border-radius:99px;}
+  .catrow.exp .bar > i{background:var(--red);} .catrow.inc .bar > i{background:var(--blue);}
+
   /* 설정 */
   .set-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--line);}
   .set-card h4{margin:0 0 10px;font-size:15px;}
@@ -257,6 +274,10 @@
 <div class="overlay" id="dayOverlay">
   <div class="sheet" id="daySheet"></div>
 </div>
+<!-- 항목별 합계 모달 -->
+<div class="overlay" id="catOverlay">
+  <div class="sheet" id="catSheet"></div>
+</div>
 
 <script>
 // ---------- 데이터 ----------
@@ -333,7 +354,9 @@ function monthRange(){
 function weekRange(){ const s=startOfWeek(cur), e=new Date(s); e.setDate(e.getDate()+6); return [ymd(s),ymd(e)]; }
 function inRange(d,[a,b]){ return d>=a && d<=b; }
 
+let curRange=null;   // 지금 보고 있는 기간 [시작,끝]
 function rangeSummary([a,b]){
+  curRange=[a,b];
   const list = state.transactions.filter(t=>inRange(t.date,[a,b]));
   const m = sumsFor(list);
   const codes = Object.keys(m);
@@ -441,6 +464,77 @@ function openDaySheet(dateStr){
     el.onclick=()=>{ const t=state.transactions.find(x=>x.id===el.dataset.id);
       hideOverlay('dayOverlay'); openAdd(t.date,t); };
   });
+}
+
+// ---------- 항목별 합계 시트 ----------
+function openCatSheet(type){            // type: 'inc' | 'exp'
+  if(!curRange) return;
+  const wantType = type==='inc' ? 'income' : 'expense';
+  const list = state.transactions.filter(t=>t.type===wantType && inRange(t.date,curRange));
+  const label = document.getElementById('period').textContent;
+  const ko = type==='inc' ? '수입' : '지출';
+  const sign = type==='inc' ? '+' : '-';
+
+  // 분류별 묶기 (통화별로 따로)
+  const map={};                         // 분류 -> {통화:금액}
+  list.forEach(t=>{
+    if(!map[t.category]) map[t.category]={};
+    map[t.category][t.currency]=(map[t.category][t.currency]||0)+t.amount;
+  });
+  const rows=Object.keys(map).map(cat=>{
+    const curs=map[cat];
+    const num=Object.values(curs).reduce((s,v)=>s+v,0);   // 정렬·막대용 (대략)
+    return {cat,curs,num};
+  }).sort((a,b)=>b.num-a.num);
+  const grand=rows.reduce((s,r)=>s+r.num,0);
+
+  // 통화별 총합 (제목 아래)
+  const totByCur={};
+  list.forEach(t=>totByCur[t.currency]=(totByCur[t.currency]||0)+t.amount);
+  const totStr=Object.keys(totByCur).map(c=>fmt(totByCur[c],c)).join(' / ')||'0';
+
+  const PALETTE=['#ef5a3f','#4f6fe0','#f0a94f','#5bb98c','#b07cd6','#e57ea0',
+                 '#6fc4d8','#c9a24b','#8a9a5b','#d96b6b','#7d8bd4','#cf9b6f'];
+
+  let donut='', listHtml='', acc=0;
+  if(rows.length){
+    rows.forEach((r,i)=>{
+      const p=grand?r.num/grand*100:0;
+      const col=PALETTE[i%PALETTE.length];
+      // 도넛 한 조각 (12시 방향에서 시계방향)
+      donut+=`<circle r="15.9155" cx="18" cy="18" fill="none" stroke="${col}"
+        stroke-width="4.5" stroke-dasharray="${p.toFixed(2)} ${(100-p).toFixed(2)}"
+        stroke-dashoffset="${(25-acc).toFixed(2)}"></circle>`;
+      acc+=p;
+      const amtStr=Object.keys(r.curs).map(c=>fmt(r.curs[c],c)).join(' / ');
+      listHtml+=`<div class="catrow ${type}">
+        <div class="top">
+          <div class="name"><span class="dot" style="background:${col}"></span>${r.cat}<span class="pct">${Math.round(p)}%</span></div>
+          <div class="amt">${sign}${amtStr}</div>
+        </div>
+        <div class="bar"><i style="width:${grand?Math.round(r.num/grand*100):0}%;background:${col}"></i></div>
+      </div>`;
+    });
+  }
+  const topPct=rows.length?Math.round(rows[0].num/grand*100):0;
+  const chart = rows.length
+    ? `<svg class="donut" viewBox="0 0 36 36">
+         <circle r="15.9155" cx="18" cy="18" fill="none" stroke="#efe7d4" stroke-width="4.5"></circle>
+         ${donut}
+         <text x="18" y="17.4" text-anchor="middle" font-size="4.2" font-weight="800" fill="#23201a">${topPct}%</text>
+         <text x="18" y="21.4" text-anchor="middle" font-size="2.4" fill="#9a917c">${rows[0].cat}</text>
+       </svg>`
+    : '';
+  const body = rows.length ? chart+listHtml
+    : `<div class="empty-msg">이 기간엔 ${ko} 기록이 없어요.</div>`;
+
+  document.getElementById('catSheet').innerHTML=
+    `<h3>${label} · ${ko} 항목별</h3>
+     <div class="cat-total ${type}">${sign}${totStr}</div>
+     ${body}
+     <button class="btn-ghost" id="catClose">닫기</button>`;
+  showOverlay('catOverlay');
+  document.getElementById('catClose').onclick=()=>hideOverlay('catOverlay');
 }
 
 // ---------- 입력 시트 ----------
@@ -628,6 +722,9 @@ function showOverlay(id){ document.getElementById(id).classList.add('show'); }
 function hideOverlay(id){ document.getElementById(id).classList.remove('show'); }
 document.getElementById('addOverlay').onclick=e=>{ if(e.target.id==='addOverlay') hideOverlay('addOverlay'); };
 document.getElementById('dayOverlay').onclick=e=>{ if(e.target.id==='dayOverlay') hideOverlay('dayOverlay'); };
+document.getElementById('catOverlay').onclick=e=>{ if(e.target.id==='catOverlay') hideOverlay('catOverlay'); };
+document.querySelector('.sum-box.inc').onclick=()=>openCatSheet('inc');
+document.querySelector('.sum-box.exp').onclick=()=>openCatSheet('exp');
 
 // ---------- 이벤트 ----------
 document.querySelectorAll('.views button').forEach(b=> b.onclick=()=>{ view=b.dataset.view; render(); });
